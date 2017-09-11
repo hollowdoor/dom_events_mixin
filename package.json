@@ -1,0 +1,23 @@
+{
+  "name": "dom-events-mixin",
+  "version": "1.0.0",
+  "description": "Add DOM events to a class",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hollowdoor/dom_events_mixin.git"
+  },
+  "keywords": [
+    "DOM",
+    "events"
+  ],
+  "author": "Quentin Engles <hollowdoor99@gmail.com> (https://hollowdoor.github.io/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hollowdoor/dom_events_mixin/issues"
+  },
+  "homepage": "https://github.com/hollowdoor/dom_events_mixin#readme"
+}
