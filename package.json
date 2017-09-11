@@ -4,7 +4,15 @@
   "description": "Add DOM events to a class",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "ebam"
+  },
+  "ebam": {
+    "entry": "src/index.js",
+    "test": {
+      "src": "test/src.js",
+      "dest": "test/code.js"
+    }
   },
   "repository": {
     "type": "git",
@@ -19,5 +27,8 @@
   "bugs": {
     "url": "https://github.com/hollowdoor/dom_events_mixin/issues"
   },
-  "homepage": "https://github.com/hollowdoor/dom_events_mixin#readme"
+  "homepage": "https://github.com/hollowdoor/dom_events_mixin#readme",
+  "dependencies": {
+    "matches-selector": "^1.2.0"
+  }
 }
