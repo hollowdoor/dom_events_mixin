@@ -47,5 +47,29 @@ export function keyed(source, keys, listener){
         }
     }
 
-    source.addEventListener('keydown', actual, false);
+    source._keyed = source._keyed || {};
+    source._keyed[keys] = source._keyed[keys] || [];
+    source._keyed[keys].push({
+        listener,
+        actual
+    });
+
+    source.element.addEventListener('keydown', actual, false);
+
+    return source;
+}
+
+export function unkey(source, keys, listener){
+    let keyed = source._keyed[keys];
+    for(let i=0; i<keyed.length; i++){
+        if(keyed[i].listener === listener){
+            source.element.removeEventListener(
+                'keydown',
+                keyed[i].actual,
+                false
+            );
+            break;
+        }
+    }
+    return this;
 }

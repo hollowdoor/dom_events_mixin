@@ -1,91 +1,42 @@
-import matches from 'matches-selector';
-
-function getEventInfo(name, delegate, listener, useCapture){
-    let info = {
-        name,
-        listener: delegate,
-        useCapture: listener,
-        delegate: null
-    };
-
-    if(typeof delegate === 'string'){
-        info.listener = listener;
-        info.delegate = delegate;
-        info.useCapture = useCapture;
-    }
-    return info;
-}
-
-function on(source, info){
-    if(!info.delegate){
-        const {name, listener, useCapture} = info;
-        source.element.addEventListener(name, listener, useCapture);
-        return source;
-    }
-    return delegateOn(source, info);
-}
-
-function off(source, info){
-    if(!info.delegate){
-        const {name, listener, useCapture} = info;
-        source.element.removeEventListener(name, listener, useCapture);
-    }
-    return delegateOff(source, info);
-}
-
-function delegateOn(source, {name, delegate, listener, useCapture}){
-    function actual(event){
-        if(matches(event.target, delegate)){
-            return listener.apply(this, event);
-        }
-    }
-    source._delegated[name] = source._delegated[name] || [];
-    source._delegated[name].push({
-        delegate,
-        listener,
-        useCapture,
-        actual
-    });
-
-    on(source, {name, listener:actual, useCapture});
-
-    return source;
-}
-
-function delegateOff(source, {name, delegate, listener, useCapture}){
-    let delegated = source._delegated[name];
-    for(let i=0; i<delegated.length; i++){
-        if(delegated[i].listener === listener){
-            off(source, {name, listener:delegated[i].actual, useCapture});
-            delegated.splice(i, 1);
-            break;
-        }
-    }
-    return source;
-}
+import {
+    getEventInfo,
+    registerEvent,
+    addEvent,
+    removeEvent
+} from './lib/event_registry.js';
 
 const props = {
     _delegated: [],
     on(name, delegate, listener, useCapture){
-        return on(this, getEventInfo(arguments));
-    }
+        const info = getEventInfo.apply(null, arguments);
+        registerEvent(this, name);
+        addEvent(this, info);
+    },
     off(name, delegate, listener, useCapture){
-        return off(this, getEventInfo(arguments));
+        const info = getEventInfo.apply(null, arguments);
+        removeEvent(this, info);
     }
+    /*on(name, delegate, listener, useCapture){
+        return on(this, getEventInfo.apply(null,arguments));
+    },
+    off(name, delegate, listener, useCapture){
+        return off(this, getEventInfo.apply(null, arguments));
+    },
     matches(selector){
         return matches(this.element, selector);
-    }
-    keyed(keys, listener){
+    },
+    key(keys, listener){
         return keyed(this, keys, listener);
     },
     observe(event){
         return new Observable({
 
         });
-    }
+    }*/
 };
 
 export function mixin(dest){
+    console.log(props)
     Object.assign(dest, props);
     return dest;
 }
