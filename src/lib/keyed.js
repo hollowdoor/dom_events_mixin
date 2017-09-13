@@ -18,43 +18,33 @@ function initMap(keys){
     return map;
 }
 
-function createKeyMap(keys){
-
+function createKeyCheck(keys){
     const map = initMap(keys);
 
-    map.hasKey = function(event){
-        return map.key === keyFrom(event);
+    return event=>{
+        if(map.key === keyFrom(event)){
+            return (event.ctrlKey || undefined) == map.ctrl &&
+            (event.altKey || undefined) == map.alt &&
+            (event.shiftKey || undefined) == map.shift);
+        }
     };
-    map.hasOperators = function(event){
-        return (event.ctrlKey || undefined) == map.ctrl &&
-        (event.altKey || undefined) == map.alt &&
-        (event.shiftKey || undefined) == map.shift);
-    };
-
 }
 
-export function keyed(source, keys, listener){
+export function keyed(source, keys, listener, useCapture){
 
-    let map = createKeyMap(keys);
+    let match = createKeyCheck(keys);
 
     function actual(event){
-        if(map.hasKey(event)){
-            if(!map.operators){
-                return listener(event);
-            }else if(map.hasOperators(event)){
-                return listener(event);
-            }
+        if(match(event)){
+            return listener(event);
         }
     }
 
-    source._keyed = source._keyed || {};
-    source._keyed[keys] = source._keyed[keys] || [];
-    source._keyed[keys].push({
-        listener,
-        actual
+    addEvent({
+        listener: actual,
+        userListener: listener,
+        useCapture
     });
-
-    source.element.addEventListener('keydown', actual, false);
 
     return source;
 }

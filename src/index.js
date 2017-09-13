@@ -15,28 +15,21 @@ const props = {
     off(name, delegate, listener, useCapture){
         const info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
-    }
-    /*on(name, delegate, listener, useCapture){
-        return on(this, getEventInfo.apply(null,arguments));
     },
-    off(name, delegate, listener, useCapture){
-        return off(this, getEventInfo.apply(null, arguments));
+    once(name, delegate, listener, useCapture){
+        const info = getEventInfo.call(this, name, delegate, listener, useCapture, true);
+        registerEvent(this, name);
+        addEvent(this, info);
     },
     matches(selector){
         return matches(this.element, selector);
-    },
+    },/*
     key(keys, listener){
         return keyed(this, keys, listener);
-    },
-    observe(event){
-        return new Observable({
-
-        });
     }*/
 };
 
 export function mixin(dest){
-    console.log(props)
     Object.assign(dest, props);
     return dest;
 }

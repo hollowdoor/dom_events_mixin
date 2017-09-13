@@ -30,22 +30,77 @@ function match(el, selector) {
   return false;
 }
 
+var keynames = {
+  8   : 'backspace',
+  9   : 'tab',
+  13  : 'enter',
+  16  : 'shift',
+  17  : 'ctrl',
+  18  : 'alt',
+  20  : 'capslock',
+  27  : 'esc',
+  32  : 'space',
+  33  : 'pageup',
+  34  : 'pagedown',
+  35  : 'end',
+  36  : 'home',
+  37  : 'left',
+  38  : 'up',
+  39  : 'right',
+  40  : 'down',
+  45  : 'ins',
+  46  : 'del',
+  91  : 'meta',
+  93  : 'meta',
+  224 : 'meta'
+};
+
+function keyFrom(event){
+
+    return (keynames[event.which]
+        || String.fromCharCode(event.keyCode).toLowerCase());
+}
+
 function registerEvent(source, name){
     source._events = source._events || {};
     source._events[name] = source._events[name] || [];
 }
 
-function getEventInfo(name, delegate, listener, useCapture, ref){
-    if ( ref === void 0 ) { ref = {}; }
-    var once = ref.once; if ( once === void 0 ) { once = false; }
+function initInfo(name){
+    var info = {keys: null, name: name};
+    var keys, names;
+    var maybeKeys = name.split(':').map(function (s){ return s.trim(); });
+    if(maybeKeys.length > 1){
+        var map = {}, index;
+        var assign;
+        (assign = maybeKeys, keys = assign[0], names = assign[1]);
+        var list = keys.split(' ');
+        var setOp = function (name){
+            if((index = list.indexOf(name)) !== -1){
+                map[name] = true;
+                map.operators = true;
+                list.splice(index, 1);
+            }
 
+        };
+        setOp('ctrl');
+        setOp('alt');
+        setOp('shift');
+        map.key = list[0];
+        info.keys = map;
+        info.names = names.split(' ');
+    }else{
+        info.names = name.split(' ');
+    }
 
-    var userListener;
+    return info;
+}
+
+function getEventInfo(name, delegate, listener, useCapture, once){
+
+    var userListener = listener;
     var source = this;
-    var info = {
-        name: name,
-        once: once
-    };
+    var info = initInfo(name);
 
     if(typeof delegate !== 'string'){
         useCapture = listener;
@@ -53,29 +108,42 @@ function getEventInfo(name, delegate, listener, useCapture, ref){
         delegate = null;
     }
 
-    if(delegate){
-        if(once){
-            userListener = listener;
-            listener = function(event){
+    //Last caller is created first
+    //All layered like an onion from the inside out on creation
+    //Pealed from the outside in on event firing
+    if(once){
+        listener = (function (fire){
+            return function(event){
+                removeEvent(source, info);
+                return fire.call(this, event);
+            };
+        })(listener);
+    }
+
+    if(typeof delegate === 'string'){
+        listener = (function (fire){
+            return function(event){
                 if(matchesSelector(event.target, delegate)){
-                    removeEvent(source, info);
-                    return userListener.call(this, event);
+                    return fire.call(this, event);
                 }
             };
-        }else{
-            userListener = listener;
-            listener = function(event){
-                if(matchesSelector(event.target, delegate)){
-                    return userListener.call(this, event);
+        })(listener);
+    }
+
+    if(info.keys){
+        listener = (function (fire){
+            var map = info.keys;
+            return function(event){
+
+                if(!map.key || map.key === keyFrom(event)){
+                    if((event.ctrlKey || undefined) == map.ctrl &&
+                    (event.altKey || undefined) == map.alt &&
+                    (event.shiftKey || undefined) == map.shift){
+                        return fire.call(this, event);
+                    }
                 }
             };
-        }
-    }else if(once){
-        userListener = listener;
-        listener = function(event){
-            removeEvent(source, info);
-            return userListener.call(this, event);
-        };
+        })(listener);
     }
 
     return Object.assign(info, {
@@ -88,7 +156,9 @@ function getEventInfo(name, delegate, listener, useCapture, ref){
 
 function addEvent(source, event){
     source._events[event.name].push(event);
-    source.element.addEventListener(event.name, event.listener, event.useCapture);
+    event.names.forEach(function (name){
+        source.element.addEventListener(name, event.listener, event.useCapture);
+    });
 }
 
 function removeEvent(source, event){
@@ -99,9 +169,15 @@ function removeEvent(source, event){
 
     for(var i=0; i<events.length; i++){
         if(events[i].userListener === event.userListener){
-            source.element.removeEventListener(
-                name, event.listener, event.useCapture);
+            events[i].names.forEach(function (name){
+                source.element.removeEventListener(
+                    name, event.listener, event.useCapture);
+            });
+            
             source._events[event.name].splice(i, 1);
+            if(!source._events[event.name].length){
+                delete source._events[event.name];
+            }
             return;
         }
     }
@@ -117,45 +193,41 @@ var props = {
     off: function off(name, delegate, listener, useCapture){
         var info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
-    }
-    /*on(name, delegate, listener, useCapture){
-        return on(this, getEventInfo.apply(null,arguments));
     },
-    off(name, delegate, listener, useCapture){
-        return off(this, getEventInfo.apply(null, arguments));
+    once: function once(name, delegate, listener, useCapture){
+        var info = getEventInfo.call(this, name, delegate, listener, useCapture, true);
+        registerEvent(this, name);
+        addEvent(this, info);
     },
-    matches(selector){
+    matches: function matches$1$$1(selector){
         return matches(this.element, selector);
-    },
+    },/*
     key(keys, listener){
         return keyed(this, keys, listener);
-    },
-    observe(event){
-        return new Observable({
-
-        });
     }*/
 };
 
 function mixin(dest){
-    console.log(props);
     Object.assign(dest, props);
     return dest;
 }
 
 var MyElement = function MyElement(tag){
     mixin(this);
-    if(typeof tag === 'string'){
-        this.element = document.createElement(tag);
-    }else{
-        this.element = tag;
-    }
-    if(this.element !== document.body)
-        { document.body.appendChild(this.element); }
+    this.element = document.querySelector(tag);
 };
 
-var el = new MyElement('input');
+var el = new MyElement('#input1');
 el.on('click', function (e){ return console.log('clicked'); });
+el.once('mousedown', function (e){ return console.log('mousedowned'); });
+var el2 = new MyElement('#list1');
+el2.on('click', 'li', function (e){ return console.log(e.target.innerHTML); });
+el2.once('click', 'li', function (e){ return console.log('once ',e.target.innerHTML); });
+el.on('ctrl:click', function (e){ return console.log('ctrl:click'); });
+el.on('ctrl s:keydown', function (e){
+    e.preventDefault();
+    console.log('ctrl s');
+});
 
 }());
 //# sourceMappingURL=code.js.map
