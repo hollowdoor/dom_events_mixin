@@ -11,8 +11,7 @@ const el = new MyElement('#input1');
 el.on('click', e=>console.log('clicked'));
 el.once('mousedown', e=>console.log('mousedowned'));
 el.on('ctrl:click', e=>console.log('ctrl:click'));
-el.on('ctrl+s:keypress keydown', e=>{
-    if(e.type === 'keypress') return;
+el.on('ctrl+s:keydown', e=>{
     e.preventDefault();
     console.log('ctrl+s')
 });
