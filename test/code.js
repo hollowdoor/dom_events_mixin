@@ -57,6 +57,10 @@ var keynames = {
 
 function keyFrom(event){
 
+    if(event.key !== void 0){
+        return event.key.toLowerCase();
+    }
+
     return (keynames[event.which]
         || String.fromCharCode(event.keyCode).toLowerCase());
 }
@@ -74,7 +78,7 @@ function initInfo(name){
         var map = {}, index;
         var assign;
         (assign = maybeKeys, keys = assign[0], names = assign[1]);
-        var list = keys.split(' ');
+        var list = keys.split('+');
         var setOp = function (name){
             if((index = list.indexOf(name)) !== -1){
                 map[name] = true;
@@ -86,9 +90,23 @@ function initInfo(name){
         setOp('ctrl');
         setOp('alt');
         setOp('shift');
+        setOp('cmd');
         map.key = list[0];
         info.keys = map;
         info.names = names.split(' ');
+        map.controls = function(event){
+            return ((event.ctrlKey || undefined) == map.ctrl &&
+            (event.altKey || undefined) == map.alt &&
+            (event.shiftKey || undefined) == map.shift);
+        };
+        if(typeof map.cmd === 'boolean'){
+            //supporting ctrl and meta for mac
+            map.controls = function(event){
+                return ((event.ctrlKey || event.metaKey) &&
+                (event.altKey || undefined) == map.alt &&
+                (event.shiftKey || undefined) == map.shift);
+            };
+        }
     }else{
         info.names = name.split(' ');
     }
@@ -134,11 +152,10 @@ function getEventInfo(name, delegate, listener, useCapture, once){
         listener = (function (fire){
             var map = info.keys;
             return function(event){
-
+                //Some times a visible key is used
                 if(!map.key || map.key === keyFrom(event)){
-                    if((event.ctrlKey || undefined) == map.ctrl &&
-                    (event.altKey || undefined) == map.alt &&
-                    (event.shiftKey || undefined) == map.shift){
+
+                    if(map.controls(event)){
                         return fire.call(this, event);
                     }
                 }
@@ -173,7 +190,7 @@ function removeEvent(source, event){
                 source.element.removeEventListener(
                     name, event.listener, event.useCapture);
             });
-            
+
             source._events[event.name].splice(i, 1);
             if(!source._events[event.name].length){
                 delete source._events[event.name];
@@ -201,10 +218,17 @@ var props = {
     },
     matches: function matches$1$$1(selector){
         return matches(this.element, selector);
-    },/*
-    key(keys, listener){
-        return keyed(this, keys, listener);
-    }*/
+    },
+    observe: function observe(event){
+        //This is here to remind us that native observables
+        //are on the horizon.
+        /*
+        return new Observable(observer=>{
+            //using events from this prototype
+            //emit the observable value
+        });
+        */
+    }
 };
 
 function mixin(dest){
@@ -224,10 +248,16 @@ var el2 = new MyElement('#list1');
 el2.on('click', 'li', function (e){ return console.log(e.target.innerHTML); });
 el2.once('click', 'li', function (e){ return console.log('once ',e.target.innerHTML); });
 el.on('ctrl:click', function (e){ return console.log('ctrl:click'); });
-el.on('ctrl s:keydown', function (e){
+el.on('ctrl+s:keypress keydown', function (e){
+    if(e.type === 'keypress') { return; }
     e.preventDefault();
-    console.log('ctrl s');
+    console.log('ctrl+s');
 });
+el2.on('cmd:click', 'li', function (e){ return console.log('ctrl:click li', e.target.innerHTML); });
+/*el.quiet('ctrl s:keydown', e=>{
+    e.preventDefault();
+    console.log('ctrl s quiet')
+});*/
 
 }());
 //# sourceMappingURL=code.js.map

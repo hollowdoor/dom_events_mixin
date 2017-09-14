@@ -23,10 +23,17 @@ const props = {
     },
     matches(selector){
         return matches(this.element, selector);
-    },/*
-    key(keys, listener){
-        return keyed(this, keys, listener);
-    }*/
+    },
+    observe(event){
+        //This is here to remind us that native observables
+        //are on the horizon.
+        /*
+        return new Observable(observer=>{
+            //using events from this prototype
+            //emit the observable value
+        });
+        */
+    }
 };
 
 export function mixin(dest){

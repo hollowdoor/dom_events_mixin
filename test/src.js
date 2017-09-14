@@ -14,7 +14,13 @@ const el2 = new MyElement('#list1');
 el2.on('click', 'li', e=>console.log(e.target.innerHTML));
 el2.once('click', 'li', e=>console.log('once ',e.target.innerHTML));
 el.on('ctrl:click', e=>console.log('ctrl:click'));
-el.on('ctrl s:keydown', e=>{
+el.on('ctrl+s:keypress keydown', e=>{
+    if(e.type === 'keypress') return;
     e.preventDefault();
-    console.log('ctrl s')
+    console.log('ctrl+s')
 });
+el2.on('cmd:click', 'li', e=>console.log('ctrl:click li', e.target.innerHTML));
+/*el.quiet('ctrl s:keydown', e=>{
+    e.preventDefault();
+    console.log('ctrl s quiet')
+});*/

@@ -13,7 +13,7 @@ function initInfo(name){
     if(maybeKeys.length > 1){
         let map = {}, index;
         [keys, names] = maybeKeys;
-        let list = keys.split(' ');
+        let list = keys.split('+');
         const setOp = (name)=>{
             if((index = list.indexOf(name)) !== -1){
                 map[name] = true;
@@ -25,9 +25,23 @@ function initInfo(name){
         setOp('ctrl');
         setOp('alt');
         setOp('shift');
+        setOp('cmd');
         map.key = list[0];
         info.keys = map;
         info.names = names.split(' ');
+        map.controls = function(event){
+            return ((event.ctrlKey || undefined) == map.ctrl &&
+            (event.altKey || undefined) == map.alt &&
+            (event.shiftKey || undefined) == map.shift);
+        };
+        if(typeof map.cmd === 'boolean'){
+            //supporting ctrl and meta for mac
+            map.controls = function(event){
+                return ((event.ctrlKey || event.metaKey) &&
+                (event.altKey || undefined) == map.alt &&
+                (event.shiftKey || undefined) == map.shift);
+            };
+        }
     }else{
         info.names = name.split(' ');
     }
@@ -73,11 +87,10 @@ export function getEventInfo(name, delegate, listener, useCapture, once){
         listener = ((fire)=>{
             const map = info.keys;
             return function(event){
-
+                //Some times a visible key is used
                 if(!map.key || map.key === keyFrom(event)){
-                    if((event.ctrlKey || undefined) == map.ctrl &&
-                    (event.altKey || undefined) == map.alt &&
-                    (event.shiftKey || undefined) == map.shift){
+
+                    if(map.controls(event)){
                         return fire.call(this, event);
                     }
                 }
@@ -112,7 +125,7 @@ export function removeEvent(source, event){
                 source.element.removeEventListener(
                     name, event.listener, event.useCapture);
             });
-            
+
             source._events[event.name].splice(i, 1);
             if(!source._events[event.name].length){
                 delete source._events[event.name];
