@@ -229,7 +229,7 @@ function getEventInfo(name, delegate, listener, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
-    if(once){
+    if(!!once){
         listener = (function (fire){
             return function(event){
                 removeEvent(source, info);
@@ -239,6 +239,9 @@ function getEventInfo(name, delegate, listener, options){
     }
 
     if(typeof delegate === 'string'){
+        try{
+            document.querySelector(delegate);
+        }catch(e){ throw e; }
         listener = (function (fire){
             return function(event){
                 if(matchesSelector(event.target, delegate)){
@@ -248,7 +251,7 @@ function getEventInfo(name, delegate, listener, options){
         })(listener);
     }
 
-    if(info.keys){
+    if(!!info.keys){
         listener = (function (fire, map){
             return function(event){
                 //Some times a visible key is used
@@ -262,7 +265,7 @@ function getEventInfo(name, delegate, listener, options){
         })(listener, info.keys);
     }
 
-    if(debounce){
+    if(!!debounce){
         listener = (function (fire, delay){
             var timer = null;
             return function(event){
@@ -276,7 +279,7 @@ function getEventInfo(name, delegate, listener, options){
         })(listener, parseInt(debounce));
     }else
 
-    if(throttle){
+    if(!!throttle){
 
         listener = (function (fire, wait){
             var ctx, args, rtn, timeoutID; // caching
@@ -312,7 +315,7 @@ function getEventInfo(name, delegate, listener, options){
                 }
                 return rtn;
             };
-        })(listener, throttle);
+        })(listener, parseInt(throttle));
 
     }
 
@@ -404,8 +407,7 @@ var el = new MyElement('#input1');
 el.on('click', function (e){ return console.log('clicked'); });
 el.once('mousedown', function (e){ return console.log('mousedowned'); });
 el.on('ctrl:click', function (e){ return console.log('ctrl:click'); });
-el.on('ctrl+s:keypress keydown', function (e){
-    if(e.type === 'keypress') { return; }
+el.on('ctrl+s:keydown', function (e){
     e.preventDefault();
     console.log('ctrl+s');
 });

@@ -69,7 +69,7 @@ export function getEventInfo(name, delegate, listener, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
-    if(once){
+    if(!!once){
         listener = ((fire)=>{
             return function(event){
                 removeEvent(source, info);
@@ -79,6 +79,9 @@ export function getEventInfo(name, delegate, listener, options){
     }
 
     if(typeof delegate === 'string'){
+        try{
+            document.querySelector(delegate);
+        }catch(e){ throw e; }
         listener = ((fire)=>{
             return function(event){
                 if(matches(event.target, delegate)){
@@ -88,7 +91,7 @@ export function getEventInfo(name, delegate, listener, options){
         })(listener);
     }
 
-    if(info.keys){
+    if(!!info.keys){
         listener = ((fire, map)=>{
             return function(event){
                 //Some times a visible key is used
@@ -102,7 +105,7 @@ export function getEventInfo(name, delegate, listener, options){
         })(listener, info.keys);
     }
 
-    if(debounce){
+    if(!!debounce){
         listener = ((fire, delay)=>{
             let timer = null;
             return function(event){
@@ -114,7 +117,7 @@ export function getEventInfo(name, delegate, listener, options){
         })(listener, parseInt(debounce));
     }else
 
-    if(throttle){
+    if(!!throttle){
 
         listener = ((fire, wait)=>{
             var ctx, args, rtn, timeoutID; // caching
