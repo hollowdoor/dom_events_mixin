@@ -1,6 +1,98 @@
 (function () {
 'use strict';
 
+/*
+object-assign
+(c) Sindre Sorhus
+@license MIT
+*/
+
+/* eslint-disable no-unused-vars */
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+function toObject(val) {
+	if (val === null || val === undefined) {
+		throw new TypeError('Object.assign cannot be called with null or undefined');
+	}
+
+	return Object(val);
+}
+
+function shouldUseNative() {
+	try {
+		if (!Object.assign) {
+			return false;
+		}
+
+		// Detect buggy property enumeration order in older V8 versions.
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=4118
+		var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
+		test1[5] = 'de';
+		if (Object.getOwnPropertyNames(test1)[0] === '5') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test2 = {};
+		for (var i = 0; i < 10; i++) {
+			test2['_' + String.fromCharCode(i)] = i;
+		}
+		var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+			return test2[n];
+		});
+		if (order2.join('') !== '0123456789') {
+			return false;
+		}
+
+		// https://bugs.chromium.org/p/v8/issues/detail?id=3056
+		var test3 = {};
+		'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
+			test3[letter] = letter;
+		});
+		if (Object.keys(Object.assign({}, test3)).join('') !==
+				'abcdefghijklmnopqrst') {
+			return false;
+		}
+
+		return true;
+	} catch (err) {
+		// We don't expect any of the above to throw, but better to be safe.
+		return false;
+	}
+}
+
+var objectAssign = shouldUseNative() ? Object.assign : function (target, source) {
+	var arguments$1 = arguments;
+
+	var from;
+	var to = toObject(target);
+	var symbols;
+
+	for (var s = 1; s < arguments.length; s++) {
+		from = Object(arguments$1[s]);
+
+		for (var key in from) {
+			if (hasOwnProperty.call(from, key)) {
+				to[key] = from[key];
+			}
+		}
+
+		if (getOwnPropertySymbols) {
+			symbols = getOwnPropertySymbols(from);
+			for (var i = 0; i < symbols.length; i++) {
+				if (propIsEnumerable.call(from, symbols[i])) {
+					to[symbols[i]] = from[symbols[i]];
+				}
+			}
+		}
+	}
+
+	return to;
+};
+
 var proto = typeof Element !== 'undefined' ? Element.prototype : {};
 var vendor = proto.matches
   || proto.matchesSelector
@@ -114,17 +206,25 @@ function initInfo(name){
     return info;
 }
 
-function getEventInfo(name, delegate, listener, useCapture, once){
+function getEventInfo(name, delegate, listener, options){
 
     var userListener = listener;
     var source = this;
     var info = initInfo(name);
 
     if(typeof delegate !== 'string'){
-        useCapture = listener;
-        listener = delegate;
+        //useCapture = listener;
+        options = listener;
+        userListener = listener = delegate;
         delegate = null;
     }
+
+    options = options || {};
+
+    var once = options.once;
+    var useCapture = options.useCapture; if ( useCapture === void 0 ) { useCapture = false; }
+    var throttle = options.throttle;
+    var debounce = options.debounce;
 
     //Last caller is created first
     //All layered like an onion from the inside out on creation
@@ -149,8 +249,7 @@ function getEventInfo(name, delegate, listener, useCapture, once){
     }
 
     if(info.keys){
-        listener = (function (fire){
-            var map = info.keys;
+        listener = (function (fire, map){
             return function(event){
                 //Some times a visible key is used
                 if(!map.key || map.key === keyFrom(event)){
@@ -160,7 +259,61 @@ function getEventInfo(name, delegate, listener, useCapture, once){
                     }
                 }
             };
-        })(listener);
+        })(listener, info.keys);
+    }
+
+    if(debounce){
+        listener = (function (fire, delay){
+            var timer = null;
+            return function(event){
+                var this$1 = this;
+
+                clearTimeout(timer);
+                timer = setTimeout(function (){
+                    fire.call(this$1, event);
+                }, delay);
+            };
+        })(listener, parseInt(debounce));
+    }else
+
+    if(throttle){
+
+        listener = (function (fire, wait){
+            var ctx, args, rtn, timeoutID; // caching
+            var last = 0, first = false;
+
+            var reset = function (){
+                timeoutID = 0;
+                last = Date.now();
+            };
+
+            return function(event){
+                var this$1 = this;
+
+                //ctx = this;
+                //args = arguments;
+                if(!first){
+                    first = true;
+                    reset();
+                    fire.call(this, event);
+                    return;
+                }
+                var delta = new Date() - last;
+                if (!timeoutID){
+                    if(delta >= wait){
+                        reset();
+                        rtn = fire.call(this, event);
+                    }else{
+                        timeoutID = setTimeout(function (){
+                            reset();
+                            rtn = fire.call(this$1, event);
+                        }, wait - delta);
+                    }
+                }
+                return rtn;
+            };
+        })(listener, throttle);
+
     }
 
     return Object.assign(info, {
@@ -202,17 +355,23 @@ function removeEvent(source, event){
 
 var props = {
     _delegated: [],
-    on: function on(name, delegate, listener, useCapture){
+    on: function on(name, delegate, listener, options){
         var info = getEventInfo.apply(null, arguments);
         registerEvent(this, name);
         addEvent(this, info);
     },
-    off: function off(name, delegate, listener, useCapture){
+    off: function off(name, delegate, listener, options){
         var info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
     },
-    once: function once(name, delegate, listener, useCapture){
-        var info = getEventInfo.call(this, name, delegate, listener, useCapture, true);
+    once: function once(name, delegate, listener, options){
+        if(typeof delegate === 'function'){
+            listener = delegate;
+            options = listener;
+        }
+        options = options || {};
+        options.once = true;
+        var info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
     },
@@ -232,7 +391,7 @@ var props = {
 };
 
 function mixin(dest){
-    Object.assign(dest, props);
+    objectAssign(dest, props);
     return dest;
 }
 
@@ -244,16 +403,28 @@ var MyElement = function MyElement(tag){
 var el = new MyElement('#input1');
 el.on('click', function (e){ return console.log('clicked'); });
 el.once('mousedown', function (e){ return console.log('mousedowned'); });
-var el2 = new MyElement('#list1');
-el2.on('click', 'li', function (e){ return console.log(e.target.innerHTML); });
-el2.once('click', 'li', function (e){ return console.log('once ',e.target.innerHTML); });
 el.on('ctrl:click', function (e){ return console.log('ctrl:click'); });
 el.on('ctrl+s:keypress keydown', function (e){
     if(e.type === 'keypress') { return; }
     e.preventDefault();
     console.log('ctrl+s');
 });
+
+var el2 = new MyElement('#list1');
+el2.on('click', 'li', function (e){ return console.log(e.target.innerHTML); });
+el2.once('click', 'li', function (e){ return console.log('once ',e.target.innerHTML); });
+
 el2.on('cmd:click', 'li', function (e){ return console.log('ctrl:click li', e.target.innerHTML); });
+
+var div1 = new MyElement('#div1');
+div1.on('mousemove', function (e){
+    console.log('debounced ', Date.now());
+}, {debounce: 1000});
+
+var div2 = new MyElement('#div2');
+div2.on('mousemove', function (e){
+    console.log('throttleed ', Date.now());
+}, {throttle: 500});
 /*el.quiet('ctrl s:keydown', e=>{
     e.preventDefault();
     console.log('ctrl s quiet')

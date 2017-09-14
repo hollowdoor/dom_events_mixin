@@ -49,17 +49,22 @@ function initInfo(name){
     return info;
 }
 
-export function getEventInfo(name, delegate, listener, useCapture, once){
+export function getEventInfo(name, delegate, listener, options){
 
     let userListener = listener;
     let source = this;
     let info = initInfo(name);
 
     if(typeof delegate !== 'string'){
-        useCapture = listener;
-        listener = delegate;
+        //useCapture = listener;
+        options = listener;
+        userListener = listener = delegate;
         delegate = null;
     }
+
+    options = options || {};
+
+    let { once, useCapture = false, throttle, debounce } = options;
 
     //Last caller is created first
     //All layered like an onion from the inside out on creation
@@ -84,8 +89,7 @@ export function getEventInfo(name, delegate, listener, useCapture, once){
     }
 
     if(info.keys){
-        listener = ((fire)=>{
-            const map = info.keys;
+        listener = ((fire, map)=>{
             return function(event){
                 //Some times a visible key is used
                 if(!map.key || map.key === keyFrom(event)){
@@ -95,7 +99,57 @@ export function getEventInfo(name, delegate, listener, useCapture, once){
                     }
                 }
             };
-        })(listener);
+        })(listener, info.keys);
+    }
+
+    if(debounce){
+        listener = ((fire, delay)=>{
+            let timer = null;
+            return function(event){
+                clearTimeout(timer);
+                timer = setTimeout(()=>{
+                    fire.call(this, event);
+                }, delay);
+            };
+        })(listener, parseInt(debounce));
+    }else
+
+    if(throttle){
+
+        listener = ((fire, wait)=>{
+            var ctx, args, rtn, timeoutID; // caching
+            var last = 0, first = false;
+
+            const reset = ()=>{
+                timeoutID = 0;
+                last = Date.now();
+            };
+
+            return function(event){
+                //ctx = this;
+                //args = arguments;
+                if(!first){
+                    first = true;
+                    reset();
+                    fire.call(this, event);
+                    return;
+                }
+                let delta = new Date() - last;
+                if (!timeoutID){
+                    if(delta >= wait){
+                        reset();
+                        rtn = fire.call(this, event);
+                    }else{
+                        timeoutID = setTimeout(()=>{
+                            reset();
+                            rtn = fire.call(this, event);
+                        }, wait - delta);
+                    }
+                }
+                return rtn;
+            };
+        })(listener, parseInt(throttle));
+
     }
 
     return Object.assign(info, {

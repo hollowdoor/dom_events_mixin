@@ -4,6 +4,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
+var objectAssign = _interopDefault(require('object-assign'));
 var matches$1 = _interopDefault(require('matches-selector'));
 
 var keynames = {
@@ -90,17 +91,25 @@ function initInfo(name){
     return info;
 }
 
-function getEventInfo(name, delegate, listener, useCapture, once){
+function getEventInfo(name, delegate, listener, options){
 
     var userListener = listener;
     var source = this;
     var info = initInfo(name);
 
     if(typeof delegate !== 'string'){
-        useCapture = listener;
-        listener = delegate;
+        //useCapture = listener;
+        options = listener;
+        userListener = listener = delegate;
         delegate = null;
     }
+
+    options = options || {};
+
+    var once = options.once;
+    var useCapture = options.useCapture; if ( useCapture === void 0 ) useCapture = false;
+    var throttle = options.throttle;
+    var debounce = options.debounce;
 
     //Last caller is created first
     //All layered like an onion from the inside out on creation
@@ -125,8 +134,7 @@ function getEventInfo(name, delegate, listener, useCapture, once){
     }
 
     if(info.keys){
-        listener = (function (fire){
-            var map = info.keys;
+        listener = (function (fire, map){
             return function(event){
                 //Some times a visible key is used
                 if(!map.key || map.key === keyFrom(event)){
@@ -136,7 +144,61 @@ function getEventInfo(name, delegate, listener, useCapture, once){
                     }
                 }
             };
-        })(listener);
+        })(listener, info.keys);
+    }
+
+    if(debounce){
+        listener = (function (fire, delay){
+            var timer = null;
+            return function(event){
+                var this$1 = this;
+
+                clearTimeout(timer);
+                timer = setTimeout(function (){
+                    fire.call(this$1, event);
+                }, delay);
+            };
+        })(listener, parseInt(debounce));
+    }else
+
+    if(throttle){
+
+        listener = (function (fire, wait){
+            var ctx, args, rtn, timeoutID; // caching
+            var last = 0, first = false;
+
+            var reset = function (){
+                timeoutID = 0;
+                last = Date.now();
+            };
+
+            return function(event){
+                var this$1 = this;
+
+                //ctx = this;
+                //args = arguments;
+                if(!first){
+                    first = true;
+                    reset();
+                    fire.call(this, event);
+                    return;
+                }
+                var delta = new Date() - last;
+                if (!timeoutID){
+                    if(delta >= wait){
+                        reset();
+                        rtn = fire.call(this, event);
+                    }else{
+                        timeoutID = setTimeout(function (){
+                            reset();
+                            rtn = fire.call(this$1, event);
+                        }, wait - delta);
+                    }
+                }
+                return rtn;
+            };
+        })(listener, throttle);
+
     }
 
     return Object.assign(info, {
@@ -178,17 +240,23 @@ function removeEvent(source, event){
 
 var props = {
     _delegated: [],
-    on: function on(name, delegate, listener, useCapture){
+    on: function on(name, delegate, listener, options){
         var info = getEventInfo.apply(null, arguments);
         registerEvent(this, name);
         addEvent(this, info);
     },
-    off: function off(name, delegate, listener, useCapture){
+    off: function off(name, delegate, listener, options){
         var info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
     },
-    once: function once(name, delegate, listener, useCapture){
-        var info = getEventInfo.call(this, name, delegate, listener, useCapture, true);
+    once: function once(name, delegate, listener, options){
+        if(typeof delegate === 'function'){
+            listener = delegate;
+            options = listener;
+        }
+        options = options || {};
+        options.once = true;
+        var info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
     },
@@ -208,7 +276,7 @@ var props = {
 };
 
 function mixin(dest){
-    Object.assign(dest, props);
+    objectAssign(dest, props);
     return dest;
 }
 

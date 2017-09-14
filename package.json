@@ -29,7 +29,8 @@
   },
   "homepage": "https://github.com/hollowdoor/dom_events_mixin#readme",
   "dependencies": {
-    "matches-selector": "^1.2.0"
+    "matches-selector": "^1.2.0",
+    "object-assign": "^4.1.1"
   },
   "jsnext:main": "dist/bundle.es.js",
   "module": "dist/bundle.es.js"

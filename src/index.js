@@ -1,3 +1,4 @@
+import objectAssign from 'object-assign';
 import {
     getEventInfo,
     registerEvent,
@@ -7,17 +8,23 @@ import {
 
 const props = {
     _delegated: [],
-    on(name, delegate, listener, useCapture){
+    on(name, delegate, listener, options){
         const info = getEventInfo.apply(null, arguments);
         registerEvent(this, name);
         addEvent(this, info);
     },
-    off(name, delegate, listener, useCapture){
+    off(name, delegate, listener, options){
         const info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
     },
-    once(name, delegate, listener, useCapture){
-        const info = getEventInfo.call(this, name, delegate, listener, useCapture, true);
+    once(name, delegate, listener, options){
+        if(typeof delegate === 'function'){
+            listener = delegate;
+            options = listener;
+        }
+        options = options || {};
+        options.once = true;
+        const info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
     },
@@ -37,7 +44,7 @@ const props = {
 };
 
 export function mixin(dest){
-    Object.assign(dest, props);
+    objectAssign(dest, props);
     return dest;
 }
 
