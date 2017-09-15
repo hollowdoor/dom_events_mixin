@@ -36,6 +36,68 @@ function keyFrom(event){
         || String.fromCharCode(event.keyCode).toLowerCase());
 }
 
+var setOp = function (map, list, name){
+    var index;
+    if((index = list.indexOf(name)) !== -1){
+        /*Object.defineProperty(map, name, {
+            value: true
+        });*/
+        map[name] = true;
+        map.modifiers = true;
+        list.splice(index, 1);
+    }else{
+        /*Object.defineProperty(map, name, {
+            value: false
+        });*/
+    }
+};
+
+var Keys = function Keys(keys){
+    this.sequence = keys;
+    var list = keys.split('+');
+    setOp(this, list, 'ctrl');
+    setOp(this, list, 'alt');
+    setOp(this, list, 'shift');
+    setOp(this, list, 'cmd');
+    this.key = list[0];
+
+    if(this.modifiers){
+        Object.defineProperty(this, 'modifiers', {
+            value: true
+        });
+    }
+
+    this.matchModifiers = function(event){
+        return ((event.ctrlKey || undefined) == this.ctrl &&
+        (event.altKey || undefined) == this.alt &&
+        (event.shiftKey || undefined) == this.shift);
+    };
+
+    if(typeof this.cmd === 'boolean'){
+        //supporting ctrl and meta for mac
+        this.matchModifiers = function(event){
+            return ((event.ctrlKey || event.metaKey) &&
+            (event.altKey || undefined) == this.alt &&
+            (event.shiftKey || undefined) == this.shift);
+        };
+    }
+
+    //Some times a visible key is used
+    this.matchSequence = function(event){
+        if(this.key === keyFrom(event)){
+            return this.matchModifiers(event);
+        }
+    };
+
+    if(!this.key){
+        this.matchSequence = this.matchModifiers;
+    }
+};
+Keys.prototype.match = function match (event){
+    return this.matchSequence(event);
+};
+
+//import keyFrom from './keyfrom.js';
 function registerEvent(source, name){
     source._events = source._events || {};
     source._events[name] = source._events[name] || [];
@@ -43,53 +105,15 @@ function registerEvent(source, name){
 
 function initInfo(name){
     var info = {keys: null, name: name};
-    var keys, names;
+    var keys;
     var maybeKeys = name.split(':').map(function (s){ return s.trim(); });
     if(maybeKeys.length > 1){
-        var map = {}, index;
         var assign;
-        (assign = maybeKeys, keys = assign[0], names = assign[1]);
-        var list = keys.split('+');
-        var setOp = function (name){
-            if((index = list.indexOf(name)) !== -1){
-                map[name] = true;
-                map.operators = true;
-                list.splice(index, 1);
-            }
-
-        };
-        setOp('ctrl');
-        setOp('alt');
-        setOp('shift');
-        setOp('cmd');
-        map.key = list[0];
-        info.keys = map;
-        info.names = names.split(' ');
-        map.controls = function(event){
-            return ((event.ctrlKey || undefined) == map.ctrl &&
-            (event.altKey || undefined) == map.alt &&
-            (event.shiftKey || undefined) == map.shift);
-        };
-        if(typeof map.cmd === 'boolean'){
-            //supporting ctrl and meta for mac
-            map.controls = function(event){
-                return ((event.ctrlKey || event.metaKey) &&
-                (event.altKey || undefined) == map.alt &&
-                (event.shiftKey || undefined) == map.shift);
-            };
-        }
-        //Some times a visible key is used
-        map.keyed = function(event){
-            if(map.key === keyFrom(event)){
-                return map.controls(event);
-            }
-        };
-        if(!map.key){
-            map.keyed = map.controls;
-        }
-    }else{
-        info.names = name.split(' ');
+        (assign = maybeKeys, keys = assign[0], name = assign[1]);
+        info.keys = new Keys(keys);
     }
+
+    info.names = name.split(' ');
 
     return info;
 }
@@ -104,7 +128,7 @@ var layers = {
     },
     keys: function keys(fire, map){
         return function(event){
-            if(map.keyed(event)){
+            if(map.match(event)){
                 return fire.call(this, event);
             }
         };

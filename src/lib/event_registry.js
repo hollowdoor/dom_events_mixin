@@ -1,5 +1,6 @@
 import matches from 'matches-selector';
-import keyFrom from './keyfrom.js';
+//import keyFrom from './keyfrom.js';
+import Keys from './keys.js';
 
 export function registerEvent(source, name){
     source._events = source._events || {};
@@ -8,52 +9,14 @@ export function registerEvent(source, name){
 
 function initInfo(name){
     const info = {keys: null, name};
-    let keys, names;
+    let keys;
     let maybeKeys = name.split(':').map(s=>s.trim());
     if(maybeKeys.length > 1){
-        let map = {}, index;
-        [keys, names] = maybeKeys;
-        let list = keys.split('+');
-        const setOp = (name)=>{
-            if((index = list.indexOf(name)) !== -1){
-                map[name] = true;
-                map.operators = true;
-                list.splice(index, 1);
-            }
-
-        };
-        setOp('ctrl');
-        setOp('alt');
-        setOp('shift');
-        setOp('cmd');
-        map.key = list[0];
-        info.keys = map;
-        info.names = names.split(' ');
-        map.controls = function(event){
-            return ((event.ctrlKey || undefined) == map.ctrl &&
-            (event.altKey || undefined) == map.alt &&
-            (event.shiftKey || undefined) == map.shift);
-        };
-        if(typeof map.cmd === 'boolean'){
-            //supporting ctrl and meta for mac
-            map.controls = function(event){
-                return ((event.ctrlKey || event.metaKey) &&
-                (event.altKey || undefined) == map.alt &&
-                (event.shiftKey || undefined) == map.shift);
-            };
-        }
-        //Some times a visible key is used
-        map.keyed = function(event){
-            if(map.key === keyFrom(event)){
-                return map.controls(event);
-            }
-        };
-        if(!map.key){
-            map.keyed = map.controls;
-        }
-    }else{
-        info.names = name.split(' ');
+        [keys, name] = maybeKeys;
+        info.keys = new Keys(keys);
     }
+
+    info.names = name.split(' ');
 
     return info;
 }
@@ -68,7 +31,7 @@ const layers = {
     },
     keys(fire, map){
         return function(event){
-            if(map.keyed(event)){
+            if(map.match(event)){
                 return fire.call(this, event);
             }
         };
