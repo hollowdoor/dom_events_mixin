@@ -91,6 +91,80 @@ function initInfo(name){
     return info;
 }
 
+var layers = {
+    delegate: function delegate(fire, delegate$1){
+        return function(event){
+            if(matches$1(event.target, delegate$1)){
+                return fire.call(this, event);
+            }
+        };
+    },
+    keys: function keys(fire, map){
+        return function(event){
+            //Some times a visible key is used
+            if(!map.key || map.key === keyFrom(event)){
+
+                if(map.controls(event)){
+                    return fire.call(this, event);
+                }
+            }
+        };
+    },
+    debounce: function debounce(fire, delay){
+        var timer = null;
+        return function(event){
+            var this$1 = this;
+
+            clearTimeout(timer);
+            timer = setTimeout(function (){
+                fire.call(this$1, event);
+            }, delay);
+        };
+    },
+    throttle: function throttle(fire, wait){
+        var ctx, args, rtn, timeoutID; // caching
+        var last = 0, first = false;
+
+        var reset = function (){
+            timeoutID = 0;
+            last = Date.now();
+        };
+
+        return function(event){
+            var this$1 = this;
+
+            //ctx = this;
+            //args = arguments;
+            if(!first){
+                first = true;
+                reset();
+                fire.call(this, event);
+                return;
+            }
+            var delta = new Date() - last;
+            if (!timeoutID){
+                if(delta >= wait){
+                    reset();
+                    rtn = fire.call(this, event);
+                }else{
+                    timeoutID = setTimeout(function (){
+                        reset();
+                        rtn = fire.call(this$1, event);
+                    }, wait - delta);
+                }
+            }
+            return rtn;
+        };
+    },
+    once: function once(source, fire, info){
+        return function(event){
+            removeEvent(source, info);
+            return fire.call(this, event);
+        };
+    }
+
+};
+
 function getEventInfo(name, delegate, listener, options){
 
     var userListener = listener;
@@ -98,7 +172,6 @@ function getEventInfo(name, delegate, listener, options){
     var info = initInfo(name);
 
     if(typeof delegate !== 'string'){
-        //useCapture = listener;
         options = listener;
         userListener = listener = delegate;
         delegate = null;
@@ -114,94 +187,32 @@ function getEventInfo(name, delegate, listener, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
-    if(!!once){
-        listener = (function (fire){
-            return function(event){
-                removeEvent(source, info);
-                return fire.call(this, event);
-            };
-        })(listener);
+
+    //Prefer throttle over debounce
+    if(!!throttle){
+        listener = layers.throttle(listener, parseInt(throttle));
+    }else
+    if(!!debounce){
+        listener = layers.debounce(listener, parseInt(debounce));
+    }
+
+    //Sync layers should run before async layers
+
+    if(!!info.keys){
+        listener = layers.keys(listener, info.keys);
     }
 
     if(typeof delegate === 'string'){
         try{
             document.querySelector(delegate);
-        }catch(e){ throw e; }
-        listener = (function (fire){
-            return function(event){
-                if(matches$1(event.target, delegate)){
-                    return fire.call(this, event);
-                }
-            };
-        })(listener);
+        }catch(e){
+            throw new Error('delegate selector Error \n'+e.message);
+        }
+        listener = layers.delegate(listener, delegate);
     }
 
-    if(!!info.keys){
-        listener = (function (fire, map){
-            return function(event){
-                //Some times a visible key is used
-                if(!map.key || map.key === keyFrom(event)){
-
-                    if(map.controls(event)){
-                        return fire.call(this, event);
-                    }
-                }
-            };
-        })(listener, info.keys);
-    }
-
-    if(!!debounce){
-        listener = (function (fire, delay){
-            var timer = null;
-            return function(event){
-                var this$1 = this;
-
-                clearTimeout(timer);
-                timer = setTimeout(function (){
-                    fire.call(this$1, event);
-                }, delay);
-            };
-        })(listener, parseInt(debounce));
-    }else
-
-    if(!!throttle){
-
-        listener = (function (fire, wait){
-            var ctx, args, rtn, timeoutID; // caching
-            var last = 0, first = false;
-
-            var reset = function (){
-                timeoutID = 0;
-                last = Date.now();
-            };
-
-            return function(event){
-                var this$1 = this;
-
-                //ctx = this;
-                //args = arguments;
-                if(!first){
-                    first = true;
-                    reset();
-                    fire.call(this, event);
-                    return;
-                }
-                var delta = new Date() - last;
-                if (!timeoutID){
-                    if(delta >= wait){
-                        reset();
-                        rtn = fire.call(this, event);
-                    }else{
-                        timeoutID = setTimeout(function (){
-                            reset();
-                            rtn = fire.call(this$1, event);
-                        }, wait - delta);
-                    }
-                }
-                return rtn;
-            };
-        })(listener, parseInt(throttle));
-
+    if(!!once){
+        listener = layers.once(source, listener, info);
     }
 
     return Object.assign(info, {
