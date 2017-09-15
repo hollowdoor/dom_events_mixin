@@ -103,7 +103,6 @@ Keys.prototype.match = function match (event){
     return this.matchSequence(event);
 };
 
-//import keyFrom from './keyfrom.js';
 function registerEvent(source, name){
     source._events = source._events || {};
     source._events[name] = source._events[name] || [];
@@ -162,7 +161,7 @@ var layers = {
             var this$1 = this;
 
             var delta = new Date() - last;
-            
+
             if(!first){
                 first = true;
                 reset();
@@ -182,6 +181,19 @@ var layers = {
                 }
             }
             return rtn;
+        };
+    },
+    contain: function contain(fire){
+        return function(event){
+
+            var rect = this.getBoundingClientRect();
+            if (event.clientX >= rect.left
+                && event.clientX <= rect.right
+                && event.clientY >= rect.top
+                && event.clientY <= rect.bottom) {
+              // Mouse is inside element.
+              return fire.call(this, event);
+            }
         };
     },
     once: function once(source, fire, info){
@@ -212,19 +224,25 @@ function getEventInfo(name, delegate, listener, options){
     var throttle = options.throttle;
     var debounce = options.debounce;
 
+    throttle = parseInt(throttle);
+    debounce = parseInt(debounce);
+
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
 
-    //Prefer throttle over debounce
-    if(!!throttle){
-        listener = layers.throttle(listener, parseInt(throttle));
-    }else
-    if(!!debounce){
-        listener = layers.debounce(listener, parseInt(debounce));
+    //once should be last to allow async calls to finish
+    if(!!once){
+        listener = layers.once(source, listener, info);
     }
 
-    //Sync layers should run before async layers
+    //Prefer throttle over debounce
+    if(!isNaN(throttle)){
+        listener = layers.throttle(listener, throttle);
+    }else
+    if(!isNaN(debounce)){
+        listener = layers.debounce(listener, debounce);
+    }
 
     if(!!info.keys){
         listener = layers.keys(listener, info.keys);
@@ -237,10 +255,6 @@ function getEventInfo(name, delegate, listener, options){
             throw new Error('delegate selector Error \n'+e.message);
         }
         listener = layers.delegate(listener, delegate);
-    }
-
-    if(!!once){
-        listener = layers.once(source, listener, info);
     }
 
     return Object.assign(info, {

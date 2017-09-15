@@ -114,6 +114,9 @@ export function getEventInfo(name, delegate, listener, options){
 
     let { once, useCapture = false, throttle, debounce } = options;
 
+    throttle = parseInt(throttle);
+    debounce = parseInt(debounce);
+
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
@@ -124,11 +127,11 @@ export function getEventInfo(name, delegate, listener, options){
     }
 
     //Prefer throttle over debounce
-    if(!!throttle){
-        listener = layers.throttle(listener, parseInt(throttle));
+    if(!isNaN(throttle)){
+        listener = layers.throttle(listener, throttle);
     }else
-    if(!!debounce){
-        listener = layers.debounce(listener, parseInt(debounce));
+    if(!isNaN(debounce)){
+        listener = layers.debounce(listener, debounce);
     }
 
     if(!!info.keys){
