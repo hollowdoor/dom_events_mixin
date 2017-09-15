@@ -46,8 +46,7 @@ const layers = {
         };
     },
     throttle(fire, wait){
-        var ctx, args, rtn, timeoutID; // caching
-        var last = 0, first = false;
+        let rtn, last = 0, first = false, timeoutID;
 
         const reset = ()=>{
             timeoutID = 0;
@@ -55,16 +54,16 @@ const layers = {
         };
 
         return function(event){
-            //ctx = this;
-            //args = arguments;
+            let delta = new Date() - last;
+
             if(!first){
                 first = true;
                 reset();
                 fire.call(this, event);
                 return;
             }
-            let delta = new Date() - last;
-            if (!timeoutID){
+
+            if(!timeoutID){
                 if(delta >= wait){
                     reset();
                     rtn = fire.call(this, event);
@@ -107,6 +106,11 @@ export function getEventInfo(name, delegate, listener, options){
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
 
+    //once should be first to allow async calls to finish
+    if(!!once){
+        listener = layers.once(source, listener, info);
+    }
+
     //Prefer throttle over debounce
     if(!!throttle){
         listener = layers.throttle(listener, parseInt(throttle));
@@ -114,8 +118,6 @@ export function getEventInfo(name, delegate, listener, options){
     if(!!debounce){
         listener = layers.debounce(listener, parseInt(debounce));
     }
-
-    //Sync layers should run before async layers
 
     if(!!info.keys){
         listener = layers.keys(listener, info.keys);
@@ -130,9 +132,7 @@ export function getEventInfo(name, delegate, listener, options){
         listener = layers.delegate(listener, delegate);
     }
 
-    if(!!once){
-        listener = layers.once(source, listener, info);
-    }
+
 
     return Object.assign(info, {
         listener,

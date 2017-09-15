@@ -145,8 +145,7 @@ var layers = {
         };
     },
     throttle: function throttle(fire, wait){
-        var ctx, args, rtn, timeoutID; // caching
-        var last = 0, first = false;
+        var rtn, last = 0, first = false, timeoutID;
 
         var reset = function (){
             timeoutID = 0;
@@ -156,16 +155,16 @@ var layers = {
         return function(event){
             var this$1 = this;
 
-            //ctx = this;
-            //args = arguments;
+            var delta = new Date() - last;
+            
             if(!first){
                 first = true;
                 reset();
                 fire.call(this, event);
                 return;
             }
-            var delta = new Date() - last;
-            if (!timeoutID){
+
+            if(!timeoutID){
                 if(delta >= wait){
                     reset();
                     rtn = fire.call(this, event);
