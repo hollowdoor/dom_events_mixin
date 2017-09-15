@@ -98,44 +98,42 @@ const layers = {
 
 };
 
-export function getEventInfo(name, delegate, listener, options){
+export function getEventInfo(name, delegate, handler, options){
 
-    let userListener = listener;
+    let userHandler = handler;
     let source = this;
     let info = initInfo(name);
 
     if(typeof delegate !== 'string'){
-        options = listener;
-        userListener = listener = delegate;
+        options = handler;
+        userHandler = handler = delegate;
         delegate = null;
     }
 
-    options = options || {};
-
-    let { once, useCapture = false, throttle, debounce } = options;
-
-    throttle = parseInt(throttle);
-    debounce = parseInt(debounce);
+    let {
+        once, capture = false, throttle = 0, debounce = 0
+    } = typeof options === 'object' ? options : {};
 
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
 
-    //once should be last to allow async calls to finish
-    if(!!once){
-        listener = layers.once(source, listener, info);
+    //Prefer throttle over debounce
+    if(throttle && !(throttle !== throttle)){
+        handler = layers.throttle(handler, parseInt(throttle));
+    }else
+    if(debounce && !(debounce !== debounce)){
+        handler = layers.debounce(handler, parseInt(debounce));
     }
 
-    //Prefer throttle over debounce
-    if(!isNaN(throttle)){
-        listener = layers.throttle(listener, throttle);
-    }else
-    if(!isNaN(debounce)){
-        listener = layers.debounce(listener, debounce);
+    //once runs before async layers,
+    //and after sync layers
+    if(!!once){
+        handler = layers.once(source, handler, info);
     }
 
     if(!!info.keys){
-        listener = layers.keys(listener, info.keys);
+        handler = layers.keys(handler, info.keys);
     }
 
     if(typeof delegate === 'string'){
@@ -144,21 +142,24 @@ export function getEventInfo(name, delegate, listener, options){
         }catch(e){
             throw new Error('delegate selector Error \n'+e.message);
         }
-        listener = layers.delegate(listener, delegate);
+        handler = layers.delegate(handler, delegate);
     }
 
     return Object.assign(info, {
-        listener,
-        userListener,
-        useCapture,
-        delegate
+        handler,
+        //Matching properties for removal
+        userHandler,
+        capture,
+        delegate,
+        throttle,
+        debounce
     });
 }
 
 export function addEvent(source, event){
     source._events[event.name].push(event);
     event.names.forEach(name=>{
-        source.element.addEventListener(name, event.listener, event.useCapture);
+        source.element.addEventListener(name, event.handler, event.capture);
     });
 }
 
@@ -169,10 +170,16 @@ export function removeEvent(source, event){
     let events = source._events[event.name];
 
     for(let i=0; i<events.length; i++){
-        if(events[i].userListener === event.userListener){
+        if(
+            events[i].userHandler === event.userHandler &&
+            events[i].capture === event.capture &&
+            events[i].delegate === event.delegate &&
+            events[i].throttle === event.throttle &&
+            events[i].debounce === event.debounce
+        ){
             events[i].names.forEach(name=>{
                 source.element.removeEventListener(
-                    name, event.listener, event.useCapture);
+                    name, event.handler, event.capture);
             });
 
             source._events[event.name].splice(i, 1);

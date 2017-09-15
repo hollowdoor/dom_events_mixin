@@ -320,47 +320,44 @@ var layers = {
 
 };
 
-function getEventInfo(name, delegate, listener, options){
+function getEventInfo(name, delegate, handler, options){
 
-    var userListener = listener;
+    var userHandler = handler;
     var source = this;
     var info = initInfo(name);
 
     if(typeof delegate !== 'string'){
-        options = listener;
-        userListener = listener = delegate;
+        options = handler;
+        userHandler = handler = delegate;
         delegate = null;
     }
 
-    options = options || {};
-
-    var once = options.once;
-    var useCapture = options.useCapture; if ( useCapture === void 0 ) useCapture = false;
-    var throttle = options.throttle;
-    var debounce = options.debounce;
-
-    throttle = parseInt(throttle);
-    debounce = parseInt(debounce);
+    var ref = typeof options === 'object' ? options : {};
+    var once = ref.once;
+    var capture = ref.capture; if ( capture === void 0 ) capture = false;
+    var throttle = ref.throttle; if ( throttle === void 0 ) throttle = 0;
+    var debounce = ref.debounce; if ( debounce === void 0 ) debounce = 0;
 
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
 
-    //once should be last to allow async calls to finish
-    if(!!once){
-        listener = layers.once(source, listener, info);
+    //Prefer throttle over debounce
+    if(throttle && !(throttle !== throttle)){
+        handler = layers.throttle(handler, parseInt(throttle));
+    }else
+    if(debounce && !(debounce !== debounce)){
+        handler = layers.debounce(handler, parseInt(debounce));
     }
 
-    //Prefer throttle over debounce
-    if(!isNaN(throttle)){
-        listener = layers.throttle(listener, throttle);
-    }else
-    if(!isNaN(debounce)){
-        listener = layers.debounce(listener, debounce);
+    //once runs before async layers,
+    //and after sync layers
+    if(!!once){
+        handler = layers.once(source, handler, info);
     }
 
     if(!!info.keys){
-        listener = layers.keys(listener, info.keys);
+        handler = layers.keys(handler, info.keys);
     }
 
     if(typeof delegate === 'string'){
@@ -369,21 +366,24 @@ function getEventInfo(name, delegate, listener, options){
         }catch(e){
             throw new Error('delegate selector Error \n'+e.message);
         }
-        listener = layers.delegate(listener, delegate);
+        handler = layers.delegate(handler, delegate);
     }
 
     return Object.assign(info, {
-        listener: listener,
-        userListener: userListener,
-        useCapture: useCapture,
-        delegate: delegate
+        handler: handler,
+        //Matching properties for removal
+        userHandler: userHandler,
+        capture: capture,
+        delegate: delegate,
+        throttle: throttle,
+        debounce: debounce
     });
 }
 
 function addEvent(source, event){
     source._events[event.name].push(event);
     event.names.forEach(function (name){
-        source.element.addEventListener(name, event.listener, event.useCapture);
+        source.element.addEventListener(name, event.handler, event.capture);
     });
 }
 
@@ -394,10 +394,16 @@ function removeEvent(source, event){
     var events = source._events[event.name];
 
     for(var i=0; i<events.length; i++){
-        if(events[i].userListener === event.userListener){
+        if(
+            events[i].userHandler === event.userHandler &&
+            events[i].capture === event.capture &&
+            events[i].delegate === event.delegate &&
+            events[i].throttle === event.throttle &&
+            events[i].debounce === event.debounce
+        ){
             events[i].names.forEach(function (name){
                 source.element.removeEventListener(
-                    name, event.listener, event.useCapture);
+                    name, event.handler, event.capture);
             });
 
             source._events[event.name].splice(i, 1);
