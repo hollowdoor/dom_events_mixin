@@ -76,6 +76,19 @@ const layers = {
             return rtn;
         };
     },
+    contain(fire){
+        return function(event){
+
+            let rect = this.getBoundingClientRect();
+            if (event.clientX >= rect.left
+                && event.clientX <= rect.right
+                && event.clientY >= rect.top
+                && event.clientY <= rect.bottom) {
+              // Mouse is inside element.
+              return fire.call(this, event);
+            }
+        };
+    },
     once(source, fire, info){
         return function(event){
             removeEvent(source, info);
