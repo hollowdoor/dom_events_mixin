@@ -1,5 +1,4 @@
 import matches from 'matches-selector';
-//import keyFrom from './keyfrom.js';
 import Keys from './keys.js';
 
 export function registerEvent(source, name){
@@ -106,7 +105,7 @@ export function getEventInfo(name, delegate, listener, options){
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
 
-    //once should be first to allow async calls to finish
+    //once should be last to allow async calls to finish
     if(!!once){
         listener = layers.once(source, listener, info);
     }
@@ -131,8 +130,6 @@ export function getEventInfo(name, delegate, listener, options){
         }
         listener = layers.delegate(listener, delegate);
     }
-
-
 
     return Object.assign(info, {
         listener,
