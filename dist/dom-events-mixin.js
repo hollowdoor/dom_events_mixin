@@ -316,8 +316,12 @@ var layers = {
             removeEvent(source, info);
             return fire.call(this, event);
         };
+    },
+    object: function object(handler){
+        return function(event){
+            return (handler.handleEvent).call(handler, event);
+        };
     }
-
 };
 
 function getEventInfo(name, delegate, handler, options){
@@ -341,6 +345,17 @@ function getEventInfo(name, delegate, handler, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
+
+    if(typeof handler === 'object'){
+        if(typeof handler.handleEvent !== 'object'){
+            throw new TypeError(
+                handler.handleEvent + ' on ' + handler +
+                ' is not a function'
+            );
+        }
+        
+        handler = layers.object(handler);
+    }
 
     //Prefer throttle over debounce
     if(throttle && !(throttle !== throttle)){
