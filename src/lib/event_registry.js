@@ -42,6 +42,15 @@ function initInfo(name){
                 (event.shiftKey || undefined) == map.shift);
             };
         }
+        //Some times a visible key is used
+        map.keyed = function(event){
+            if(map.key === keyFrom(event)){
+                return map.controls(event);
+            }
+        };
+        if(!map.key){
+            map.keyed = map.controls;
+        }
     }else{
         info.names = name.split(' ');
     }
@@ -59,12 +68,8 @@ const layers = {
     },
     keys(fire, map){
         return function(event){
-            //Some times a visible key is used
-            if(!map.key || map.key === keyFrom(event)){
-
-                if(map.controls(event)){
-                    return fire.call(this, event);
-                }
+            if(map.keyed(event)){
+                return fire.call(this, event);
             }
         };
     },
