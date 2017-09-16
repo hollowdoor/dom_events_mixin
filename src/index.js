@@ -13,10 +13,12 @@ const props = {
         const info = getEventInfo.apply(null, arguments);
         registerEvent(this, name);
         addEvent(this, info);
+        return this;
     },
     off(name, delegate, listener, options){
         const info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
+        return this;
     },
     once(name, delegate, listener, options){
         if(typeof delegate === 'function'){
@@ -28,6 +30,7 @@ const props = {
         const info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
+        return this;
     },
     trigger(event){
         trigger(this, event);

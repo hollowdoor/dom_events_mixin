@@ -325,10 +325,12 @@ var props = {
         var info = getEventInfo.apply(null, arguments);
         registerEvent(this, name);
         addEvent(this, info);
+        return this;
     },
     off: function off(name, delegate, listener, options){
         var info = getEventInfo.apply(null, arguments);
         removeEvent(this, info);
+        return this;
     },
     once: function once(name, delegate, listener, options){
         if(typeof delegate === 'function'){
@@ -340,6 +342,7 @@ var props = {
         var info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
+        return this;
     },
     trigger: function trigger$1(event){
         trigger(this, event);
