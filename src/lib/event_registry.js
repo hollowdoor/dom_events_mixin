@@ -207,12 +207,6 @@ export function removeEvent(source, event){
     }
 }
 
-export function trigger(source, name, data = {}){
-    if(document.body['on'+name]){
-        var event = new MouseEvent('click', {
-    'view': window,
-    'bubbles': true,
-    'cancelable': true
-  });
-    }
+export function trigger(source, event){
+    source.element.dispatchEvent(event);
 }

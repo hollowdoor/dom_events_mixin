@@ -430,6 +430,10 @@ function removeEvent(source, event){
     }
 }
 
+function trigger(source, event){
+    source.element.dispatchEvent(event);
+}
+
 var props = {
     _delegated: [],
     on: function on(name, delegate, listener, options){
@@ -451,6 +455,10 @@ var props = {
         var info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
+    },
+    trigger: function trigger$1(event){
+        trigger(this, event);
+        return this;
     },
     matches: function matches$1$$1(selector){
         return matches(this.element, selector);

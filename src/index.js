@@ -3,7 +3,8 @@ import {
     getEventInfo,
     registerEvent,
     addEvent,
-    removeEvent
+    removeEvent,
+    trigger
 } from './lib/event_registry.js';
 
 const props = {
@@ -27,6 +28,10 @@ const props = {
         const info = getEventInfo.call(this, name, delegate, listener, options);
         registerEvent(this, name);
         addEvent(this, info);
+    },
+    trigger(event){
+        trigger(this, event);
+        return this;
     },
     matches(selector){
         return matches(this.element, selector);
