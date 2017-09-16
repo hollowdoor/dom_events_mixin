@@ -2,10 +2,12 @@ import { mixin } from '../';
 
 class MyElement {
     constructor(tag){
-        mixin(this);
+        //mixin(this);
         this.element = document.querySelector(tag);
     }
 }
+
+mixin(MyElement.prototype);
 
 const el = new MyElement('#input1');
 el.on('click', e=>console.log('clicked'));

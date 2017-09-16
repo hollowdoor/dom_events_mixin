@@ -473,9 +473,11 @@ function mixin(dest){
 }
 
 var MyElement = function MyElement(tag){
-    mixin(this);
+    //mixin(this);
     this.element = document.querySelector(tag);
 };
+
+mixin(MyElement.prototype);
 
 var el = new MyElement('#input1');
 el.on('click', function (e){ return console.log('clicked'); });
