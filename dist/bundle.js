@@ -238,7 +238,7 @@ function getEventInfo(name, delegate, handler, options){
                 ' is not a function'
             );
         }
-        
+
         handler = layers.object(handler);
     }
 
@@ -269,7 +269,7 @@ function getEventInfo(name, delegate, handler, options){
         handler = layers.delegate(handler, delegate);
     }
 
-    return Object.assign(info, {
+    return objectAssign(info, {
         handler: handler,
         //Matching properties for removal
         userHandler: userHandler,

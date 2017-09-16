@@ -1,4 +1,5 @@
 import matches from 'matches-selector';
+import objectAssign from 'object-assign';
 import Keys from './keys.js';
 
 export function registerEvent(source, name){
@@ -129,7 +130,7 @@ export function getEventInfo(name, delegate, handler, options){
                 ' is not a function'
             );
         }
-        
+
         handler = layers.object(handler);
     }
 
@@ -160,7 +161,7 @@ export function getEventInfo(name, delegate, handler, options){
         handler = layers.delegate(handler, delegate);
     }
 
-    return Object.assign(info, {
+    return objectAssign(info, {
         handler,
         //Matching properties for removal
         userHandler,
@@ -203,5 +204,15 @@ export function removeEvent(source, event){
             }
             return;
         }
+    }
+}
+
+export function trigger(source, name, data = {}){
+    if(document.body['on'+name]){
+        var event = new MouseEvent('click', {
+    'view': window,
+    'bubbles': true,
+    'cancelable': true
+  });
     }
 }
