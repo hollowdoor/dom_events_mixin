@@ -122,6 +122,21 @@ function match(el, selector) {
   return false;
 }
 
+var EventObserver = function EventObserver(ref){
+    if ( ref === void 0 ) ref = {};
+    var handle = ref.handle; if ( handle === void 0 ) handle = null;
+    var remove = ref.remove; if ( remove === void 0 ) remove = function (){};
+
+    this._handle = handle;
+    this._remove = remove;
+};
+EventObserver.prototype.emit = function emit (ctx, event){
+    return this._handle(ctx, event);
+};
+EventObserver.prototype.remove = function remove (){
+    this._remove();
+};
+
 var keynames = {
   8   : 'backspace',
   9   : 'tab',
@@ -166,10 +181,6 @@ var setOp = function (map, list, name){
         map[name] = true;
         map.modifiers = true;
         list.splice(index, 1);
-    }else{
-        /*Object.defineProperty(map, name, {
-            value: false
-        });*/
     }
 };
 
@@ -181,12 +192,6 @@ var Keys = function Keys(keys){
     setOp(this, list, 'shift');
     setOp(this, list, 'cmd');
     this.key = list[0];
-
-    if(this.modifiers){
-        Object.defineProperty(this, 'modifiers', {
-            value: true
-        });
-    }
 
     this.matchModifiers = function(event){
         return ((event.ctrlKey || undefined) == this.ctrl &&
@@ -225,13 +230,12 @@ function registerEvent(source, name){
 
 function initInfo(name){
     var info = {keys: null, name: name};
-    var keys;
-    var maybeKeys = name.split(':').map(function (s){ return s.trim(); });
+    /*let keys;
+    let maybeKeys = name.split(':').map(s=>s.trim());
     if(maybeKeys.length > 1){
-        var assign;
-        (assign = maybeKeys, keys = assign[0], name = assign[1]);
+        [keys, name] = maybeKeys;
         info.keys = new Keys(keys);
-    }
+    }*/
 
     info.names = name.split(' ');
 
@@ -242,13 +246,6 @@ var layers = {
     delegate: function delegate(fire, delegate$1){
         return function(event){
             if(matchesSelector(event.target, delegate$1)){
-                return fire.call(this, event);
-            }
-        };
-    },
-    keys: function keys(fire, map){
-        return function(event){
-            if(map.match(event)){
                 return fire.call(this, event);
             }
         };
@@ -321,6 +318,9 @@ var layers = {
         return function(event){
             return (handler.handleEvent).call(handler, event);
         };
+    },
+    main: function main(handler){
+        return handler;
     }
 };
 
@@ -346,6 +346,8 @@ function getEventInfo(name, delegate, handler, options){
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
 
+    handler = layers.main(handler);
+
     if(typeof handler === 'object'){
         if(typeof handler.handleEvent !== 'object'){
             throw new TypeError(
@@ -370,10 +372,10 @@ function getEventInfo(name, delegate, handler, options){
     if(!!once){
         handler = layers.once(source, handler, info);
     }
-
+    /*
     if(!!info.keys){
         handler = layers.keys(handler, info.keys);
-    }
+    }*/
 
     if(typeof delegate === 'string'){
         try{

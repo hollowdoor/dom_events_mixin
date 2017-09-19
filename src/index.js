@@ -51,6 +51,16 @@ const props = {
     }
 };
 
+[
+    'click',
+    'focus',
+    'blur'
+].forEach(prop=>{
+    props[prop] = function(){
+        return this.element[prop]();
+    };
+});
+
 export function mixin(dest){
     objectAssign(dest, props);
     return dest;
@@ -61,8 +71,3 @@ export function mixinDOMEvents(dest){
 }
 
 export { props };
-
-function hasDelegate(args){
-    return (typeof args[1] === 'string'
-    && typeof args[2] === 'function');
-}

@@ -19,10 +19,6 @@ const setOp = (map, list, name)=>{
         map[name] = true;
         map.modifiers = true;
         list.splice(index, 1);
-    }else{
-        /*Object.defineProperty(map, name, {
-            value: false
-        });*/
     }
 };
 
@@ -35,12 +31,6 @@ export default class Keys {
         setOp(this, list, 'shift');
         setOp(this, list, 'cmd');
         this.key = list[0];
-
-        if(this.modifiers){
-            Object.defineProperty(this, 'modifiers', {
-                value: true
-            });
-        }
 
         this.matchModifiers = function(event){
             return ((event.ctrlKey || undefined) == this.ctrl &&

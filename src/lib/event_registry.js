@@ -1,5 +1,6 @@
 import matches from 'matches-selector';
 import objectAssign from 'object-assign';
+import EventObserver from './event_observer.js';
 import Keys from './keys.js';
 
 export function registerEvent(source, name){
@@ -8,13 +9,7 @@ export function registerEvent(source, name){
 }
 
 function initInfo(name){
-    const info = {keys: null, name};
-    let keys;
-    let maybeKeys = name.split(':').map(s=>s.trim());
-    if(maybeKeys.length > 1){
-        [keys, name] = maybeKeys;
-        info.keys = new Keys(keys);
-    }
+    const info = {};
 
     info.names = name.split(' ');
 
@@ -25,13 +20,6 @@ const layers = {
     delegate(fire, delegate){
         return function(event){
             if(matches(event.target, delegate)){
-                return fire.call(this, event);
-            }
-        };
-    },
-    keys(fire, map){
-        return function(event){
-            if(map.match(event)){
                 return fire.call(this, event);
             }
         };
@@ -100,6 +88,9 @@ const layers = {
         return function(event){
             return (handler.handleEvent).call(handler, event);
         };
+    },
+    main(handler){
+        return handler;
     }
 };
 
@@ -122,6 +113,8 @@ export function getEventInfo(name, delegate, handler, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
+
+    handler = layers.main(handler);
 
     if(typeof handler === 'object'){
         if(typeof handler.handleEvent !== 'object'){
@@ -146,10 +139,6 @@ export function getEventInfo(name, delegate, handler, options){
     //and after sync layers
     if(!!once){
         handler = layers.once(source, handler, info);
-    }
-
-    if(!!info.keys){
-        handler = layers.keys(handler, info.keys);
     }
 
     if(typeof delegate === 'string'){
