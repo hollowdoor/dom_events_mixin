@@ -114,14 +114,7 @@ function registerEvent(source, name){
 }
 
 function initInfo(name){
-    var info = {keys: null, name: name};
-    /*let keys;
-    let maybeKeys = name.split(':').map(s=>s.trim());
-    if(maybeKeys.length > 1){
-        [keys, name] = maybeKeys;
-        info.keys = new Keys(keys);
-    }*/
-
+    var info = {name: name};
     info.names = name.split(' ');
 
     return info;
@@ -257,10 +250,6 @@ function getEventInfo(name, delegate, handler, options){
     if(!!once){
         handler = layers.once(source, handler, info);
     }
-    /*
-    if(!!info.keys){
-        handler = layers.keys(handler, info.keys);
-    }*/
 
     if(typeof delegate === 'string'){
         try{
@@ -317,10 +306,6 @@ function removeEvent(source, event){
     }
 }
 
-function trigger(source, event){
-    source.element.dispatchEvent(event);
-}
-
 var props = {
     _delegated: [],
     on: function on(name, delegate, listener, options){
@@ -346,12 +331,11 @@ var props = {
         addEvent(this, info);
         return this;
     },
-    trigger: function trigger$1(event){
-        trigger(this, event);
-        return this;
-    },
     matches: function matches$1$$1(selector){
         return matches(this.element, selector);
+    },
+    dispatch: function dispatch(event){
+        element.dispatchEvent(event);
     },
     observe: function observe(event){
         //This is here to remind us that native observables
@@ -364,6 +348,16 @@ var props = {
         */
     }
 };
+
+[
+    'click',
+    'focus',
+    'blur'
+].forEach(function (prop){
+    props[prop] = function(){
+        return this.element[prop]();
+    };
+});
 
 function mixin(dest){
     objectAssign(dest, props);

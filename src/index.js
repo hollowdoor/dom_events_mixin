@@ -32,12 +32,11 @@ const props = {
         addEvent(this, info);
         return this;
     },
-    trigger(event){
-        trigger(this, event);
-        return this;
-    },
     matches(selector){
         return matches(this.element, selector);
+    },
+    dispatch(event){
+        element.dispatchEvent(event);
     },
     observe(event){
         //This is here to remind us that native observables

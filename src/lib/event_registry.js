@@ -9,8 +9,7 @@ export function registerEvent(source, name){
 }
 
 function initInfo(name){
-    const info = {};
-
+    const info = {name};
     info.names = name.split(' ');
 
     return info;
