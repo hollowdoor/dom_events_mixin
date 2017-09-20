@@ -1,7 +1,5 @@
 import matches from 'matches-selector';
 import objectAssign from 'object-assign';
-import EventObserver from './event_observer.js';
-import Keys from './keys.js';
 
 export function registerEvent(source, name){
     source._events = source._events || {};
@@ -31,6 +29,9 @@ const layers = {
                 fire.call(this, event);
             }, delay);
         };
+    },
+    keys(fire, keys){
+
     },
     throttle(fire, wait){
         let rtn, last = 0, first = false, timeoutID;
