@@ -8,8 +8,7 @@ export function registerEvent(source, name){
 
 function initInfo(name){
     const info = {name};
-    info.names = name.split(' ');
-
+    info.names = name.trim().split(/[ ]+/);
     return info;
 }
 
@@ -29,9 +28,6 @@ const layers = {
                 fire.call(this, event);
             }, delay);
         };
-    },
-    keys(fire, keys){
-
     },
     throttle(fire, wait){
         let rtn, last = 0, first = false, timeoutID;
@@ -88,9 +84,6 @@ const layers = {
         return function(event){
             return (handler.handleEvent).call(handler, event);
         };
-    },
-    main(handler){
-        return handler;
     }
 };
 
@@ -113,8 +106,6 @@ export function getEventInfo(name, delegate, handler, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
-
-    handler = layers.main(handler);
 
     if(typeof handler === 'object'){
         if(typeof handler.handleEvent !== 'object'){

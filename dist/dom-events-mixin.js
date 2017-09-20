@@ -129,8 +129,7 @@ function registerEvent(source, name){
 
 function initInfo(name){
     var info = {name: name};
-    info.names = name.split(' ');
-
+    info.names = name.trim().split(/[ ]+/);
     return info;
 }
 
@@ -210,9 +209,6 @@ var layers = {
         return function(event){
             return (handler.handleEvent).call(handler, event);
         };
-    },
-    main: function main(handler){
-        return handler;
     }
 };
 
@@ -237,8 +233,6 @@ function getEventInfo(name, delegate, handler, options){
     //Last caller is created first
     //All layered like an onion from the inside out on creation
     //Pealed from the outside in on event firing
-
-    handler = layers.main(handler);
 
     if(typeof handler === 'object'){
         if(typeof handler.handleEvent !== 'object'){
