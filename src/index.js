@@ -3,8 +3,7 @@ import {
     getEventInfo,
     registerEvent,
     addEvent,
-    removeEvent,
-    trigger
+    removeEvent
 } from './lib/event_registry.js';
 
 const props = {

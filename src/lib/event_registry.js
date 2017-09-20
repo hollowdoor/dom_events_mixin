@@ -186,7 +186,3 @@ export function removeEvent(source, event){
         }
     }
 }
-
-export function trigger(source, event){
-    source.element.dispatchEvent(event);
-}
